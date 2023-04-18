@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js"></script>
+    <title>Document</title>
+</head>
+<body>
+    <div>
+        <canvas id="animation" width="640px" height="480px"></canvas>
+        <canvas id="phase" width="640px" height="480px"></canvas>
+    </div>
+    <div>
+        <form action="javascript:restart()">
+
+            <h3>Phase Array Properties</h3>
+            <div>
+                <label for="input-ns">Number of Sources</label>
+                <input type="text" id="input-ns" value="30">
+            </div>
+
+            <div>
+                <label for="input-w">Half Spread Width</label>
+                <input type="text" id="input-w" value="2">m
+            </div>
+
+            <div>
+                <label for="input-angle">Target Angle</label>
+                <input type="text" id="input-angle" value="0.2">rad
+            </div>
+            <h3>Wave Properties</h3>
+
+            <div>
+                <label for="input-a">Intensity</label>
+                <input type="text" id="input-a" value="0.5">dBa
+            </div>
+            <div>
+                <label for="input-freq">Frequency</label>
+                <input type="text" id="input-freq" value="30">Hz
+            </div>
+            <div>
+                <label for="input-wl">Wavelength</label>
+                <input type="text" id="input-wl" value="0.2">m
+            </div>
+
+            <input type="submit" value="Rerender">
+        </form>
+    </div>
+    <script src="index.js"></script>
+</body>
+</html>
