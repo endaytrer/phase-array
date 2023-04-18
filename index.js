@@ -211,6 +211,7 @@ function main() {
       ay += a / d * sin(phase);
     }
     float val = length(vec2(ax, ay));
+    val = val * val;
     gl_FragColor = vec4(val, val, val, 1.0);
   }
   `
@@ -260,6 +261,7 @@ function restart() {
   }
   const ns = parseInt(document.getElementById('input-ns').value);
   const w  = parseFloat(document.getElementById('input-w').value);
+  const ox  = parseFloat(document.getElementById('input-ox').value);
   const angle  = parseFloat(document.getElementById('input-angle').value);
   a = parseFloat(document.getElementById('input-a').value);
   const freq  = parseFloat(document.getElementById('input-freq').value);
@@ -272,7 +274,7 @@ function restart() {
   let phase = 0;
   let interval = 2 * w / (ns - 1);
   for (let i = 0; i < ns; i += 1, wave_pos += interval, phase += k * interval * Math.sin(angle)) {
-    sources.push(new Source(0, wave_pos, phase));
+    sources.push(new Source(ox, wave_pos, phase));
   }
   main();
 }
