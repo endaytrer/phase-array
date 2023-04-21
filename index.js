@@ -243,9 +243,11 @@ const offscreenContext = offscreenCanvas.getContext('2d');
 const gainTooltip = document.getElementById('gainTooltip');
 
 function showGainTooltip(event, val) {
+  const scrollX = window.scrollX;
+  const scrollY = window.scrollY;
   gainTooltip.innerHTML = `${val.toFixed(2)} dB`;
-  gainTooltip.style.left = `${event.clientX + 15}px`;
-  gainTooltip.style.top = `${event.clientY + 15}px`;
+  gainTooltip.style.left = `${event.clientX + 15 + scrollX}px`;
+  gainTooltip.style.top = `${event.clientY + 15 + scrollY}px`;
   gainTooltip.style.display = 'block';
 }
 
