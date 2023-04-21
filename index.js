@@ -1,6 +1,13 @@
 const animation = document.getElementById('animation');
 const phase = document.getElementById('phase');
-const {width, height} = animation;
+const width = 640;
+const height = 360;
+animation.width = width;
+animation.height = height;
+phase.width = width;
+phase.height = height;
+// const {width, height} = animation;
+let vw = 40.0;
 let t = 0;
 let a = 1;
 let k = 2 * Math.PI / 1;
@@ -169,7 +176,7 @@ function main() {
   uniform float a;
   uniform float k;
   uniform float omega;
-  float vw = 20.0;
+  float vw = ${vw.toFixed(6)};
 
   void main() {
     float x = (gl_FragCoord.x) / width * vw;
@@ -178,9 +185,9 @@ function main() {
     for (int i = 0; i < ${sources.length}; i++) {
       float d = distance(vec2(x, y), vec2(sources[i].x, sources[i].y));
       float phase = omega * t - k * d + sources[i].z;
-      if (phase < 0.0) {
-        continue;
-      }
+      // if (phase < 0.0) {
+      //   continue;
+      // }
       ans += (a / d * cos(phase));
     }
     float val = ans * 0.5 + 0.5;
@@ -197,22 +204,27 @@ function main() {
   uniform float a;
   uniform float k;
   uniform float omega;
-  float vw = 20.0;
+  float vw = ${vw.toFixed(6)};
 
   void main() {
     float x = (gl_FragCoord.x) / width * vw;
     float y = (height / 2.0 - gl_FragCoord.y) / width * vw;
     float ax = 0.0;
     float ay = 0.0;
+    float e = 0.0;
     for (int i = 0; i < ${sources.length}; i++) {
       float d = distance(vec2(x, y), vec2(sources[i].x, sources[i].y));
       float phase = - k * d + sources[i].z;
       ax += a / d * cos(phase);
       ay += a / d * sin(phase);
+      e += a / d;
     }
     float val = length(vec2(ax, ay));
-    val = val * val;
-    gl_FragColor = vec4(val, val, val, 1.0);
+    // gain:
+    val = 20.0 * log(val / e);
+    // to -80dB ~ 0dB
+    val = (val + 80.0) / 80.0;
+    gl_FragColor = vec4(0.75 * val + 0.25, 0.5 * val + 0.25, 1.0 - 0.75 * val, 1.0);
   }
   `
   const getInfo = (gl, prog) => ({
@@ -260,19 +272,26 @@ function restart() {
     t = 0;
   }
   const ns = parseInt(document.getElementById('input-ns').value);
-  const w  = parseFloat(document.getElementById('input-w').value);
+  document.getElementById('ns-display').innerText = `${ns}`;
+  const interval  = parseFloat(document.getElementById('input-w').value);
+  document.getElementById('w-display').innerText = `${interval}m`;
   const ox  = parseFloat(document.getElementById('input-ox').value);
+  document.getElementById('ox-display').innerText = `${ox}m`;
   const angle  = parseFloat(document.getElementById('input-angle').value);
-  a = parseFloat(document.getElementById('input-a').value);
-  const freq  = parseFloat(document.getElementById('input-freq').value);
+  document.getElementById('angle-display').innerText = `${angle}rad`;
+  const intensity = parseFloat(document.getElementById('input-a').value);
+  document.getElementById('a-display').innerText = `${intensity}`;
+  a = intensity / ns;
+  const freq = Math.exp(parseFloat(document.getElementById('input-freq').value));
+  document.getElementById('freq-display').innerText = `${freq.toFixed(4)}Hz`;
   omega = 2 * Math.PI * freq;
-  const wl  = parseFloat(document.getElementById('input-wl').value);
+  const wl = Math.exp(parseFloat(document.getElementById('input-wl').value));
+  document.getElementById('wl-display').innerText = `${wl.toFixed(4)}m`;
   k = 2 * Math.PI / wl;
 
   sources = [];
-  let wave_pos = -w;
+  let wave_pos = - (ns - 1) * interval / 2;
   let phase = 0;
-  let interval = 2 * w / (ns - 1);
   for (let i = 0; i < ns; i += 1, wave_pos += interval, phase += k * interval * Math.sin(angle)) {
     sources.push(new Source(ox, wave_pos, phase));
   }

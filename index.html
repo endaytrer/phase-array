@@ -5,13 +5,34 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js"></script>
     <title>Document</title>
 </head>
 <body>
-    <div>
-        <canvas id="animation" width="640px" height="480px"></canvas>
-        <canvas id="phase" width="640px" height="480px"></canvas>
+    <div class="visualization">
+        <div>
+            <h3>Wave Visualization</h3>
+            <canvas id="animation"></canvas>
+        </div>
+        <div>
+            <h3>Gain</h3>
+            <div class="plot">
+                <canvas id="phase"></canvas>
+                <div class="legend">
+                    <div class="values">
+                        <div>0dB</div>
+                        <div>-10dB</div>
+                        <div>-20dB</div>
+                        <div>-30dB</div>
+                        <div>-40dB</div>
+                        <div>-50dB</div>
+                        <div>-60dB</div>
+                        <div>-70dB</div>
+                        <div>-80dB</div>
+                    </div>
+                    <div class="gradient"></div>
+                </div>
+            </div>
+        </div>
     </div>
     <div>
         <form action="javascript:restart()">
@@ -19,39 +40,45 @@
             <h3>Phase Array Properties</h3>
             <div>
                 <label for="input-ns">Number of Sources</label>
-                <input type="text" id="input-ns" value="30">
+                <input type="range" id="input-ns" min="1" max="30" step="1" value="6" oninput="restart()">
+                <span id="ns-display"></span>
             </div>
 
             <div>
-                <label for="input-w">Half Spread Width</label>
-                <input type="text" id="input-w" value="2">m
+                <label for="input-w">Interval</label>
+                <input type="range" id="input-w" min="0" max="8" step="0.01" value="0.5" oninput="restart()">
+                <span id="w-display"></span>
             </div>
 
             <div>
                 <label for="input-ox">Offset X</label>
-                <input type="text" id="input-ox" value="0">m
+                <input type="range" id="input-ox" min="0" max="40" step="0.1" value="0" oninput="restart()">
+                <span id="ox-display"></span>
             </div>
 
             <div>
                 <label for="input-angle">Target Angle</label>
-                <input type="text" id="input-angle" value="0.2">rad
+                <input type="range" id="input-angle" min="-1.57" max="1.57" step="0.01" value="0" oninput="restart()">
+                <span id="angle-display"></span>
             </div>
             <h3>Wave Properties</h3>
 
             <div>
                 <label for="input-a">Intensity</label>
-                <input type="text" id="input-a" value="0.5">dBa
+                <input type="range" id="input-a" min="0.01" max="5" step="0.01" value="1" oninput="restart()">
+                <span id="a-display"></span>
             </div>
             <div>
                 <label for="input-freq">Frequency</label>
-                <input type="text" id="input-freq" value="15">Hz
+                <input type="range" id="input-freq" min="0" max="7.601" step="0.001" value="1.61" oninput="restart()">
+                <span id="freq-display"></span>
             </div>
             <div>
                 <label for="input-wl">Wavelength</label>
-                <input type="text" id="input-wl" value="0.2">m
-            </div>
+                <input type="range" id="input-wl" min="-2.99" max="3.69" step="0.01" value="0" oninput="restart()">
 
-            <input type="submit" value="Rerender">
+                <span id="wl-display"></span>
+            </div>
         </form>
     </div>
     <script src="index.js"></script>
