@@ -2,6 +2,9 @@ const animation = document.getElementById('animation');
 const phase = document.getElementById('phase');
 const width = 640;
 const height = 360;
+let vsSourceRaw;
+let waveRaw;
+let gainRaw;
 animation.width = width;
 animation.height = height;
 phase.width = width;
@@ -19,12 +22,6 @@ function Source(x, y, phi) {
   this.y = y;
   this.phi = phi;
 }
-sources.push(new Source(0, -2, 0))
-sources.push(new Source(0, -1, 0))
-sources.push(new Source(0,  0, 0))
-sources.push(new Source(0,  1, 0))
-sources.push(new Source(0,  2, 0))
-
 //
 // Initialize a shader program, so WebGL knows how to draw our data
 //
@@ -121,7 +118,7 @@ function drawScene(gl, programInfo, buffers, t) {
 
   // Tell WebGL to use our program when drawing
   gl.useProgram(programInfo.program);
-
+  gl.uniform1f(programInfo.uniformLocations.vw, vw);
   gl.uniform3fv(programInfo.uniformLocations.sources, sources.flatMap((v) => [v.x, v.y, v.phi]));
   gl.uniform1f(programInfo.uniformLocations.width, width);
   gl.uniform1f(programInfo.uniformLocations.height, height);
@@ -156,83 +153,23 @@ function setPositionAttribute(gl, buffers, programInfo) {
   );
   gl.enableVertexAttribArray(programInfo.attribLocations.aPosition);
 }
+async function load() {
+  vsSourceRaw = await (await fetch("shaders/vs.glsl")).text();
+  waveRaw = await (await fetch("shaders/wave.glsl")).text();
+  gainRaw = await (await fetch("shaders/gain.glsl")).text();
+}
 
 function main() {
-  
-  
-  const vsSource = `
-  attribute vec2 a_position;
-  void main() {
-    gl_Position = vec4(a_position, 0, 1);
-  }
-  `
-  const fsSource = `
-  precision highp float;
-
-  uniform float width;
-  uniform float height;
-  uniform vec3 sources[${sources.length}];
-  uniform float t;
-  uniform float a;
-  uniform float k;
-  uniform float omega;
-  float vw = ${vw.toFixed(6)};
-
-  void main() {
-    float x = (gl_FragCoord.x) / width * vw;
-    float y = (height / 2.0 - gl_FragCoord.y) / width * vw;
-    float ans = 0.0;
-    for (int i = 0; i < ${sources.length}; i++) {
-      float d = distance(vec2(x, y), vec2(sources[i].x, sources[i].y));
-      float phase = omega * t - k * d + sources[i].z;
-      // if (phase < 0.0) {
-      //   continue;
-      // }
-      ans += (a / d * cos(phase));
-    }
-    float val = ans * 0.5 + 0.5;
-    gl_FragColor = vec4(val, val, val, 1.0);
-  }
-  `
-
-  const intensityFs = `
-  precision highp float;
-
-  uniform float width;
-  uniform float height;
-  uniform vec3 sources[${sources.length}];
-  uniform float a;
-  uniform float k;
-  uniform float omega;
-  float vw = ${vw.toFixed(6)};
-
-  void main() {
-    float x = (gl_FragCoord.x) / width * vw;
-    float y = (height / 2.0 - gl_FragCoord.y) / width * vw;
-    float ax = 0.0;
-    float ay = 0.0;
-    float e = 0.0;
-    for (int i = 0; i < ${sources.length}; i++) {
-      float d = distance(vec2(x, y), vec2(sources[i].x, sources[i].y));
-      float phase = - k * d + sources[i].z;
-      ax += a / d * cos(phase);
-      ay += a / d * sin(phase);
-      e += a / d;
-    }
-    float val = length(vec2(ax, ay));
-    // gain:
-    val = 20.0 * log(val / e);
-    // to -80dB ~ 0dB
-    val = (val + 80.0) / 80.0;
-    gl_FragColor = vec4(0.75 * val + 0.25, 0.5 * val + 0.25, 1.0 - 0.75 * val, 1.0);
-  }
-  `
+  const vsSource = vsSourceRaw;
+  const waveSource = waveRaw.replaceAll(/\$\{(.*)\}/g, (_, p1) => eval(p1));
+  const gainSource = gainRaw.replaceAll(/\$\{(.*)\}/g, (_, p1) => eval(p1))
   const getInfo = (gl, prog) => ({
     program: prog,
     attribLocations: {
       aPosition: gl.getAttribLocation(prog, "a_position"),
     },
     uniformLocations: {
+      vw: gl.getUniformLocation(prog, "vw"),
       sources: gl.getUniformLocation(prog, "sources"),
       width: gl.getUniformLocation(prog, "width"),
       height: gl.getUniformLocation(prog, "height"),
@@ -244,7 +181,7 @@ function main() {
   })
 
   const gla = animation.getContext('webgl');
-  const shaderProgram = initShaderProgram(gla, vsSource, fsSource);
+  const shaderProgram = initShaderProgram(gla, vsSource, waveSource);
   const programInfo = getInfo(gla, shaderProgram);
   const buffers = initBuffers(gla);
   let then = 0;
@@ -259,14 +196,13 @@ function main() {
   frame = requestAnimationFrame(tick);
 
   const glp = phase.getContext('webgl');
-  const program2 = initShaderProgram(glp, vsSource, intensityFs);
+  const program2 = initShaderProgram(glp, vsSource, gainSource);
   const programInfo2 = getInfo(glp, program2);
   const buffers2 = initBuffers(glp);
   drawScene(glp, programInfo2, buffers2);
 }
-restart();
-function restart() {
 
+function restart() {
   if (frame) {
     cancelAnimationFrame(frame);
     t = 0;
@@ -297,3 +233,8 @@ function restart() {
   }
   main();
 }
+async function init() {
+  await load();
+  restart();
+}
+init()
