@@ -1,15 +1,15 @@
-const animation = document.getElementById('animation');
-const phase = document.getElementById('phase');
+const wave = document.getElementById('wave');
+const gain = document.getElementById('gain');
+
 const width = 640;
 const height = 360;
 let vsSourceRaw;
 let waveRaw;
 let gainRaw;
-animation.width = width;
-animation.height = height;
-phase.width = width;
-phase.height = height;
-// const {width, height} = animation;
+wave.width = width;
+wave.height = height;
+gain.width = width;
+gain.height = height;
 let vw = 40.0;
 let t = 0;
 let a = 1;
@@ -159,7 +159,7 @@ async function load() {
   gainRaw = await (await fetch("shaders/gain.glsl")).text();
 }
 
-function main() {
+function render() {
   const vsSource = vsSourceRaw;
   const waveSource = waveRaw.replaceAll(/\$\{(.*)\}/g, (_, p1) => eval(p1));
   const gainSource = gainRaw.replaceAll(/\$\{(.*)\}/g, (_, p1) => eval(p1))
@@ -180,7 +180,7 @@ function main() {
     }
   })
 
-  const gla = animation.getContext('webgl');
+  const gla = wave.getContext('webgl');
   const shaderProgram = initShaderProgram(gla, vsSource, waveSource);
   const programInfo = getInfo(gla, shaderProgram);
   const buffers = initBuffers(gla);
@@ -195,11 +195,12 @@ function main() {
   }
   frame = requestAnimationFrame(tick);
 
-  const glp = phase.getContext('webgl');
+  const glp = gain.getContext('webgl');
   const program2 = initShaderProgram(glp, vsSource, gainSource);
   const programInfo2 = getInfo(glp, program2);
   const buffers2 = initBuffers(glp);
   drawScene(glp, programInfo2, buffers2);
+  offscreenContext.drawImage(gain, 0, 0);
 }
 
 function restart() {
@@ -231,10 +232,75 @@ function restart() {
   for (let i = 0; i < ns; i += 1, wave_pos += interval, phase += k * interval * Math.sin(angle)) {
     sources.push(new Source(ox, wave_pos, phase));
   }
-  main();
+  render();
 }
+
+
+const offscreenCanvas = document.createElement('canvas');
+offscreenCanvas.width = gain.width;
+offscreenCanvas.height = gain.height;
+const offscreenContext = offscreenCanvas.getContext('2d');
+const gainTooltip = document.getElementById('gainTooltip');
+
+function showGainTooltip(event, val) {
+  gainTooltip.innerHTML = `${val.toFixed(2)} dB`;
+  gainTooltip.style.left = `${event.clientX + 15}px`;
+  gainTooltip.style.top = `${event.clientY + 15}px`;
+  gainTooltip.style.display = 'block';
+}
+
+function hideGainTooltip() {
+  gainTooltip.style.display = 'none';
+}
+
+function getMousePosition(parent, event) {
+  const rect = parent.getBoundingClientRect();
+  return {
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top
+  };
+}
+function colorToGain(red, green, blue) {
+  const maxGain = 0; // 0 dB
+  const minGain = -80; // -80 dB
+
+  const maxRed = 255;
+  const minRed = 64;
+  const maxBlue = 64;
+  const minBlue = 255;
+
+  const redRatio = (red - minRed) / (maxRed - minRed);
+  const blueRatio = (blue - minBlue) / (maxBlue - minBlue);
+
+  // Calculate the average ratio between the red and blue channels
+  const ratio = (redRatio + blueRatio) / 2;
+
+  // Linearly interpolate the gain value based on the ratio
+  const val = minGain + ratio * (maxGain - minGain);
+
+  return val;
+}
+
+function updateGainTooltip(parent, event) {
+  const mousePosition = getMousePosition(parent, event);
+  const x = mousePosition.x;
+  const y = mousePosition.y; // Invert the y-coordinate
+
+  offscreenContext.drawImage(gain, 0, 0);
+  const imageData = offscreenContext.getImageData(x, y, 1, 1);
+  const rgba = imageData.data;
+  const decibel = colorToGain(rgba[0], rgba[1], rgba[2]);
+  showGainTooltip(event, decibel);
+}
+
+gain.addEventListener('mousemove', (e) => updateGainTooltip(gain, e));
+wave.addEventListener('mousemove', (e) => updateGainTooltip(wave, e));
+gain.addEventListener('mouseout', hideGainTooltip);
+wave.addEventListener('mouseout', hideGainTooltip);
+
 async function init() {
   await load();
   restart();
 }
-init()
+
+init();
